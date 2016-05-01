@@ -1,4 +1,5 @@
 #Sharpspring Data Wrangling Excercise 2 Mar 30, 2016 Curtis O'Neal
+#This is a change in the file to test my github
 #this R script manipulates data in the Titanic dataset and works with missing data
 # Assumptions:
 
