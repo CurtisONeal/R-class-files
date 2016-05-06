@@ -1,0 +1,149 @@
+---
+title: "5-5 EDA Problem Set 3"
+author: "Curtis ONeal"
+date: "May 5, 2016"
+output: word_document
+---
+#The following codes sets up libraries, reads the data, and preps some of it.
+```{r setup, include = TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(lubridate)
+library("xlsx", lib.loc="/Library/Frameworks/R.framework/Versions/3.2/Resources/library")
+library(dplyr)
+
+dat <- read.xlsx("~/Dropbox (Personal)/_Data Science Readings and Class/_Springboard/Project Data and Files/Birthdays_Google_Cal_Export.xlsx", sheetName="Birthdays_Google_Cal_Export")
+# This is an Excel of My calendar's birthday's exported from Google Calendar 
+
+#View(dat)
+names(dat) #check varnames and importation
+
+#Convert if not already type date using lubridate package
+dat$Start<- ymd(dat$Start)
+dat$month<-months(dat$Start) #pull just the month
+dat$month_fac<- as.factor(dat$month) #convert months to factor
+dat$day<- as.factor(day(dat$Start))
+dat$Title<- substr(dat$Title, 1, 7) #Try to Protect their Privacy
+```
+
+# Your task is to investigate the distribution of your friends' birth months and days.
+
+Below are questions for you to answer, and we hope you think of others.
+
+# How many people share your birthday? Do you know them?
+```{r Compare_My_BD, include=TRUE}
+#set my birthdate
+mine<- as.Date("2016-10-26") 
+#sume the logical vector of dates that match mine in the set, remove mine
+count_my_bd <- sum(dat$Start == mine)-1
+count_my_bd
+
+#Show the vector to check it
+is_mine_vector <- dat$Start == mine
+is_mine_vector
+
+#Use the logical vector to pull the names whose brithday match mine -myslef included.
+dat$Title[is_mine_vector]
+```
+
+Two people share my birthday. Of course one is me. The other is Natalie and I know her.
+
+# Which month contains the most number of birthdays?
+```{r Natalie, include=TRUE}
+
+#Plot a barchart of counts -histograms are a bear with factos
+ggplot(dat, aes(month)) +
+  geom_bar(fill="green", colour="black") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(title= "Barchart of Birthdays by Month")
+```
+
+January has the most birthdays.
+
+
+# How many birthdays are in each month?
+```{r Month_table, include=TRUE}
+
+month_table <- as.data.frame(table(dat$month_fac))
+colnames(month_table)<- c("Month", "Freq")
+arrange(month_table, Freq)
+
+```
+
+We also find that January has 9 birthdays, which was not clear from the Bar Chart
+
+
+# Which day of the year has the most number of birthdays?
+
+```{r Day_of_year_table, include=TRUE}
+
+DOY_table <- table(dat$Start)
+DOY_df <- as.data.frame(DOY_table)
+colnames(DOY_df) <- c("DOY", "Freq")
+arrange(DOY_df, Freq)
+max_days <- (select( filter(DOY_df, Freq == max(DOY_df$Freq)), DOY))
+#View(max_days)
+#str(max_days)
+
+#max_days[,1] factors
+max_days <- as.Date(max_days[,1])
+max_days
+#These days have the maximum frequencies.
+```
+
+
+#Who has birthdays on these days?
+```{r Day_of_year_table2, include=TRUE}
+max_days
+dat$Title[dat$Start %in% max_days]
+
+#At this scale this is hard to see.
+ggplot(dat, aes(Start)) +
+  geom_bar(fill="green", colour="black") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title= "Barchart of Birthdays by Day", breaks = 30) 
+
+```
+
+At this scale the barchar of the portion of 365 days is hard to read, but we can tell most days in the set only have one birthday frome the set on it, and four days have 2 birthdays on them.
+
+The most birthdays on any day is 2.
+
+The four days with two birthdays are:
+2016-01-14 
+2016-06-01 
+2016-08-29 
+2016-10-26
+
+Four of the eight people with birthdays on those days are:
+
+Seok J birthday
+Melanie S birthday
+Mark T birthday       
+Amy R birthday 
+
+# Do you have at least 365 friends that have birthdays on everyday of the year?
+```{r Num_Friends_BDs, include=TRUE}
+
+length(dat$Title)-1 #number of friend Observations minus myself
+
+length(unique(dat$Start)) #Number of unique days of the year with my Frinds birthdays.
+
+```
+
+I have 54 friends brithdays in the dataset not including myself.
+
+There are 51 unique days in the dataset. 
+
+```{r Days_of_Month_BDs, include=TRUE}
+
+sort(unique(day(dat$Start))) #Unique Days of the month with Birthdays in the dataset
+
+table(day(dat$Start))
+
+length(unique(dat$Start)) #Number of unique days of the year with my Frinds birthdays.
+
+```
+
+END.
