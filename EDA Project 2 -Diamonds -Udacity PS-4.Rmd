@@ -1,0 +1,367 @@
+---
+title: "Diamonds EDA Project 2 -Udacity Problem Set 4"
+author: "Curtis ONeal"
+date: "May 14, 2016"
+output: word_document
+---
+# In this problem set, you'll continue to explore the diamonds data set. 
+(https://www.udacity.com/course/viewer#!/c-ud651/l-771308570/e-759808752/m-761758583)
+```{r Dependencies, results = FALSE}
+knitr::opts_chunk$set(results =TRUE, fig.width=4, fig.height=4,  echo=FALSE, warning=FALSE, message=FALSE)
+
+#load code library dependencies, and set up data set.
+library(ggplot2)
+library(gridExtra)
+library(magrittr)
+library(scales)
+library(plyr)
+library(dplyr)
+
+#Dataset diamonds is native to R, no need to load it.
+pf <- diamonds
+#Convert data set to pf shorter alias
+```
+
+Your first task is to create a scatterplot of price vs x using the ggplot syntax.
+
+# Create a simple scatter plot of price vs x (a unit of diamond length).
+```{r scatter plots, results =TRUE}
+
+qplot(y =price, x= x, data=pf, main = 'Scatterplot of Diamond Prices', fill=I("grey"), col=I("red"))+ 
+  scale_x_continuous(breaks = seq(0, 18820, 2000))+
+  geom_smooth()
+
+print("Price is positively correlated with x, a measure of a size dimension of the diamonds.")
+
+print("Below are correlations related to excercise 3\'s questions in this section")
+
+print("Correlation of price to x:")
+cor.test(~ x + price, pf)
+#0.8844352 
+print("Correlation of price to y:")
+cor.test(~ y + price, pf)
+#0.8654209
+print("Correlation of price to z:")
+cor.test(~ z + price, pf)
+#0.8612494
+```
+
+# A few other visualizations from excercises in this set.
+
+Depth is a numerical unit of optical clarity for diamonds.
+
+Create a simple scatter plot of price vs depth.
+```{r Some historgrams plots, echo=FALSE, results =TRUE}
+
+print("Descriptive Stats of Depth")
+summary(pf$depth)
+
+qplot(x =depth, data=pf, main = "Histogram Diamonds by Depth", fill=I("grey"), col=I("black")) + 
+  scale_x_continuous(breaks = seq(40, 79, 2))
+
+ggplot(data = diamonds, aes(x = depth, y = price))+
+  ggtitle("Scatterplot of Diamond Prices by Depth") +
+  geom_point(colour="darkblue")+
+  scale_x_continuous(breaks = seq(40, 79, 2))
+
+print("Based on the Scatterplot of Prices vs Depth, nost diamonds are betwee 59 and 64 depth values.")
+```
+
+Change the code to make the transparency of the points to be 1/100 of what they are now and mark the x-axis every 2 units. 
+
+#Scatterplot Diamond Prices by Depth with Alpha .01
+```{r Transparent plot, echo=FALSE, results =TRUE}
+ggplot(data = diamonds, aes(x = depth, y = price)) + 
+  geom_point(alpha = 1/100, colour="darkblue") + 
+  scale_x_continuous(breaks = seq(40, 79, 2)) +
+  ggtitle("Scatterplot Diamond Prices by Depth, with Alpha .01")
+
+print("Correlation of price to depth: ")
+cor.test(~ depth + price, pf)
+#-0.0106474
+round(-0.0106474, digits = 2)
+
+print("The correlation coefficient of price to depth is below .05, and seems too small as a predictor alone.")
+
+```
+
+Create a scatterplot of price vs carat and omit the top 1% of price and carat values.
+
+#Price Vs Carat, with top outliers removed
+```{r 99 plots, echo=FALSE, results =TRUE}
+print("Descriptive Statistics for Carat-")
+summary(pf$carat)
+
+print("Define 99 Quantile for Carat-")
+quantile(pf$carat, probs = c(.99))
+#subset(pf$carat, pf$carat < quantile(pf$carat, probs = c(.99)))
+
+ggplot(data = subset(pf, pf$carat < quantile(pf$carat, 
+  probs = c(.99))), aes(x = carat, y = price)) + 
+  geom_point(alpha = 1/100, colour="darkgreen") + 
+  scale_x_continuous(breaks = seq(0, 5.1, .5)) +
+  ggtitle("Scatterplot Diamond Prices by Carat, 0-99 percentile")
+
+#l <- quantile(pf$carat, probs = c(.01))
+# 1% 
+#0.24 
+#r <- quantile(pf$carat, probs = c(.99))
+# 99% 
+# 2.18
+```
+
+Create a scatterplot of price vs. volume (x * y * z). This is a very rough approximation for a diamond's volume.
+
+#Define a rough volume estimage for diamond observations and plot it.
+```{r Volume plots, echo=FALSE, results =TRUE}
+
+pf$volume <- (pf$x* pf$y* pf$z)
+#Create Volume using vctorized expression of volume, add to dataframe
+
+print("Descriptive Statistics for Volume (defined as x* y * z)")
+summary(pf$volume)
+
+ggplot(data = pf, aes(x = volume, y = price)) + 
+  geom_point(alpha = 1/100,  colour="deeppink4") + 
+  scale_x_continuous(breaks = seq(0, 3845, 100)) +
+  ggtitle("Scatterplot Diamond Prices by ~Volume")
+
+print("This should be zoomed, centered, and outliers removed.")
+
+print("Descriptive Statistics of volume")
+summary(pf$volume)
+
+print("Defining bottom 1% of volume")
+l <- quantile(pf$volume, probs = c(.01))
+l
+# 1% 
+# 40.07633  
+
+print("Defining 99 quantile of volume")
+r <- quantile(pf$volume, probs = c(.99))
+r
+# 99% 
+# 354.4266 
+
+print("Defining Data betwee 1 and 99 quantile of volume")
+pf.good_volume <- filter(pf, between(pf$volume, l, r))
+arrange( pf.good_volume, carat )
+#head(pf.good_volume) #tested the subset
+
+ggplot(data = pf.good_volume, aes(x = volume, y = price)) + 
+  geom_point(alpha = 1/100,  colour="deeppink4") + 
+  scale_x_continuous(breaks = seq(0, 355, 50), limits = c(0, 355)) +
+  ggtitle("Scatterplot Diamond Prices by ~Volume between 1 and 99 percentile")
+```
+
+Did you notice some outliers? Some volumes are 0! There's an expensive diamond
+with a volume near 4000, and a cheaper diamond with a volume near 900. You can
+find out how many diamonds have 0 volume by using count(diamonds$volume == 0).
+The count() function comes with the plyr package. 
+
+#Volumes that are 0!
+```{r Volumes that are 0, echo=FALSE, results =TRUE}
+#library(plyr)
+print("The number of diamonds with volume = 0:")
+plyr::count(pf$volume == 0)
+
+#Instructions say to unload plyr afterwards - but loading as instructed works.
+
+# print('Note: If you ran the count function from plyr, you need to run this
+# command in R to unload the plyr package. detach("package:plyr", unload=TRUE)
+# The plyr package will conflict with the dplyr package in later exercises.
+# Depending on your investigation, it may or may not be important for you to
+# understand how outliers, like these, came to be in your data.')
+#detach("package:plyr", unload=TRUE) 
+library(dplyr)
+# NOTE: Gives and error unloading plyr?
+# ----------------------------------------------------------------------------
+# You have loaded plyr after dplyr - this is likely to cause problems.
+# If you need functions from both plyr and dplyr, please load plyr first, then dplyr:
+# library(plyr); library(dplyr)
+# ----------------------------------------------------------------------------
+```
+
+What's the correlations of price and volume excluding diamonds with 0 volume, and over 800?
+
+#Correlations as above
+```{r Correlations that are between, echo=FALSE, results =TRUE}
+
+print("The prices and volume excluding diamonds with 0 volume, and over 800 are a full vector of 53,917 numbers. Below is the desciptive statistical summary of these values:")
+
+pf.corr_volume <- filter(pf, between(pf$volume, 1, 800))
+#pf.corr_volume
+#Striclty speaking I should pick a volume that is not 0 so .000000001 
+
+summary(pf.corr_volume$volume)
+
+print("The correlation of prices and volume, excluding diamonds with 0 volume, and over 800 is:")
+round(cor(pf.corr_volume$price, pf.corr_volume$volume ), digits = 2)
+#0.92
+```
+
+INLINE VARIBLE TEST: `r length(pf.corr_volume)`
+
+Subset the data to exclude diamonds with a volume greater than or equal to 800. Also, exclude diamonds with a volume of 0. Adjust the transparency of the points and add a linear model to the plot. Use geom_smooth() for this.
+
+We encourage you to think about this next question and to post your thoughts in the discussion section.
+
+Do you think this would be a useful model to estimate the price of diamonds? Why or why not?
+
+```{r Plot Volume Between 0 and 800, echo=FALSE, results =TRUE}
+pf.corr_volume <- filter(pf, between(pf$volume, 1, 800))
+ggplot(data = pf.corr_volume, aes(x = volume, y = price)) + 
+  geom_point(alpha = 1/100, colour = 'red') + 
+  scale_x_continuous(breaks = seq(0, 800, 50), limits = c(31, 800)) +
+  ggtitle("Scatterplot Diamond Prices by ~Volume \n between 0 and 800 cubic units")+
+  geom_smooth()
+```
+
+
+Use the function dplyr package to create a new data frame containing info on diamonds by clarity. Name the data frame diamondsByClarity
+
+The data frame should contain the following variables in this order.
+
+       (1) mean_price
+       (2) median_price
+       (3) min_price
+       (4) max_price
+       (5) n
+
+where n is the number of diamonds in each level of clarity.
+
+#Create the DaimondsByClarity dataframe
+```{r Create diamondsByClarity, echo=FALSE, results =TRUE}
+
+#note using diamonds here not pf alias - dataframe
+print("First few Rows of Diamonds")
+head(diamonds)
+
+print("Define Diamonds by Clarity")
+diamondsByClarity<-diamonds %>%
+      dplyr::group_by(clarity) %>%
+      dplyr::summarise(mean_price = mean(price),
+            median_price = median(price),
+            min_price = min(price),
+            max_price = max(price),
+            n = n()) %>% 
+      dplyr::arrange(clarity)
+head(diamondsByClarity)
+
+print('Not sure about the Error -Error in n() : This function should not be called directly')
+```
+
+
+Note:Another warning: Version 0.4.0 of dplyr has a bug when using the median function on the summarize layer, depending on the nature of the data being summarized. You may need to cast the data as a numeric (float) type to get the expected results, e.g. median(as.numeric(var)).
+
+We’ve created summary data frames with the mean price by clarity and color. You can run the code in R to verify what data is in the variables diamonds_mp_by_clarity and diamonds_mp_by_color.
+
+Your task is to write additional code to create two bar plots on one output image using the grid.arrange() function from the package gridExtra.
+
+#Our diamonds_mp_by_clarity and diamonds_mp_by_color
+```{r diamonds_mp_by_clarity and diamonds_mp_by_color, fig.width = 4, fig.height = 4}
+diamonds_by_clarity <- group_by(diamonds, clarity)
+diamonds_mp_by_clarity <- summarise(diamonds_by_clarity, mean_price = mean(price), mean_carat = mean(carat))
+
+diamonds_by_color <- group_by(diamonds, color)
+diamonds_mp_by_color <- summarise(diamonds_by_color, mean_price = mean(price), mean_carat = mean(carat))
+
+head(diamonds_by_clarity)
+head(diamonds_mp_by_color)
+
+#str(diamonds_by_clarity) #Debugging code BY
+#diamonds_mp_by_clarity #Debugging code MP
+#str(diamonds_mp_by_clarity) #Debugging code MP
+
+#ggplot( data = diamonds, aes(x = clarity, y = price) ) +
+#  geom_bar(stat = "identity")  #Debugging code
+
+#diamonds_mp_by_clarity #Debugging code
+#diamonds_mp_by_clarity$clarity #Debugging code
+#diamonds_mp_by_clarity$mean_price #Debugging code
+
+#print('For chart display purposes reversing Clarity factor order so Best is in #the Right.')
+
+#diamonds_mp_by_clarity$rev_clarity <- with(diamonds_mp_by_clarity, #factor(clarity, levels = rev(levels(clarity))))
+
+#print('Original order')
+#diamonds_mp_by_clarity$clarity
+#print('Reversed order')
+#diamonds_mp_by_clarity$rev_clarity
+
+p1 <- ggplot(diamonds_mp_by_clarity, aes(clarity, mean_price ) ) +
+          geom_bar(stat = "identity", fill="gray", colour="black")+
+  ggtitle( 'Mean Price by Clarity (Worst to Best)')
+p1
+
+#Notes scale_x_reverse fails with Discrete x values
+
+#******BY COLOR*****
+#diamonds_mp_by_color
+
+print('For chart display purposes reversing Color factor order so Best is in the Right.')
+
+diamonds_mp_by_color$rev_color <- with(diamonds_mp_by_color, factor(color, levels = rev(levels(color))))
+
+print('original')
+diamonds_mp_by_color$color
+print('reversed')
+diamonds_mp_by_color$rev_color
+
+
+p2 <- ggplot( diamonds_mp_by_color, aes(x = rev_color, y = mean_price) ) +
+  geom_bar(stat = "identity", fill="gray", colour="black") +
+  scale_x_discrete()+
+  ggtitle( "Mean Price by Color (Worst to Best)")
+p2
+#Notes scale_x_reverse fails with Discrete x values
+
+grid.arrange(p1, p2, ncol = 1)
+
+```
+
+From help Diamonds:
+
+color: diamond colour, from J (worst) to D (best)
+
+clarity: a measurement of how clear the diamond is (I1 (worst), SI1, SI2, VS1, VS2, VVS1, VVS2, IF (best)
+
+Reflecting on this, the plots are counter intuitive.
+
+The dataset descriptions shows the best categroy of clarity is IF and the best category of color is D, but these values are the 2nd worst for average prices for both values by category. One would expect that the best cateogory would have the highest prices.  
+
+#Investiage pattern with price
+```{r Explore, echo=FALSE, results =TRUE, fig.width=6, fig.height=6}
+
+#diamonds_by_color <- group_by(diamonds, color)
+
+#diamonds_mp_by_color <- summarise(diamonds_by_color, mean_price = mean(price), mean_carat = mean(carat) )
+
+#diamonds_mp_by_color$mean_carat
+#diamonds_mp_by_color$mean_price
+#diamonds_mp_by_color$color
+
+print('Table of Mean prices and Mean Carats by Color')
+diamonds_mp_by_color
+
+p3 <- ggplot( diamonds_mp_by_color, aes(rev_color, mean_price, fill = mean_carat) ) +
+  geom_bar(position = "dodge", stat = "identity") +
+  ggtitle( "Mean Price by Color by Mean Carat (Worst to Best)")
+p3
+
+p4 <- ggplot( diamonds_mp_by_clarity, aes(clarity, mean_price, fill = mean_carat) ) +
+  geom_bar(position = "dodge", stat = "identity") +
+  ggtitle( "Mean Price by Clarity by Mean Carat (Worst to Best)")
+p4
+
+grid.arrange(p1, p2, p3, p4, ncol = 1)
+
+
+```
+
+
+By adding average Carat size by clairty and color we see that the best diamonds of this class on average are smaller than the other grades of diamonds for clarity and color. 
+
+Since size is so strongly correlated with price, it would seem to be the dominant factor on average affecting the prices. 
+
+A separate examination of a subset of only the highest price diamonds would be needed to determine if these have the highest factos of color and clarity.
