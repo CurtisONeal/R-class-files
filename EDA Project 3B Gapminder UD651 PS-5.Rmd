@@ -1,0 +1,230 @@
+---
+title: "EDA Project 3B -Gapminder UD651 PS-5"
+author: "Curtis ONeal"
+date: "May 5, 2016"
+output: pdf_document
+AKA: Springboard Problem Set 3
+---
+*******  Gapminder dataset ******
+The Gapminder website contains over 500 data sets with information about
+the world's population. Your task is to continue the investigation you did at the end of Problem Set 4 or you can start fresh and choose a different
+data set from Gapminder.
+
+In your investigation, examine 3 or more variables and create 2-5 plots that make use of the techniques from Lesson 5.
+*********************************
+
+Using Indicator_BMI male ASM.xlsx
+
+Data set is titled "BMI male, age standardized mean""
+
+The mean BMI (Body Mass Index) of the male population, counted in kilogram per square meter; this mean is calculated as if each country has the same age composition as the world population.
+
+Primary Source: School of Public Health, Imperial College London
+http://www.imperial.ac.uk/
+MRC-HPA Centre for Environment and Health
+http://www.imperial.ac.uk/medicine/globalmetabolics/
+Secondary Source: Uploaded to Gapminder 8/2 2011
+Downloaded from http://www.gapminder.org/data/ 5-2-2016
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(ggplot2)
+library("xlsx", lib.loc="/Library/Frameworks/R.framework/Versions/3.2/Resources/library")
+library(reshape2)
+library(Rmisc)
+
+getwd()
+#manually placed downloaded file into wd
+dat <- read.xlsx("Indicator_BMI male ASM.xlsx", sheetName="Data")
+# This is an Excel of Average Male BMI Values from 
+```
+
+A quick Tour of the Data
+```{r Explore, include=TRUE}
+
+print("Variable Names")
+names(dat)
+#Data is in Wide format and time series cannot be accessed.
+
+print("Number of Countrys")
+length(dat$Country)
+# 199 countries, 
+
+print("Rows vs Variables- data set is in wide format")
+dim(dat)
+
+print("199 Unique BMI Values")
+unique(dat$X2008)
+
+#twenty-nine years variables from x1980-x2008, with Country being a column
+
+print("Adjust the Data Set to Tall format")
+m_dat <- melt(dat, na.rm = FALSE, variable.name = "Year", value.name = "Ave_Male_BMI")
+# Melt the Year Variables into Year, and Ave_Male_BMI, Tidy Data set
+
+print("Now has these Rows, and 3 Variables")
+dim(m_dat)
+#5771  Rows
+# 3 Variables
+
+print("3 Variables Named-")
+names(m_dat)
+#"Country"      "Year"         "Ave_Male_BMI"
+
+#View(m_dat)
+
+print("Summary Statistics of Ave Male BMI")
+summary(m_dat$Ave_Male_BMI)
+
+print("For Summary Graphing, Values of BMI Rounded Down Could Be Taken")
+m_dat$Floor_BMI<- floor(m_dat$Ave_Male_BMI)
+summary(m_dat$Floor_BMI)
+print("Giving us fewer values of BMI, that would fit on a graph")
+length( unique(m_dat$Floor_BMI))
+m_dat$Year <- substr(m_dat$Year, 2, 5)
+
+#Trim the X character off the Year values x1980-x2008
+print("Clean up the data, check the structure and values-")
+m_dat$Year <- as.numeric(m_dat$Year)
+str(m_dat)
+
+ggplot( aes( y = Ave_Male_BMI, x = Year), data = m_dat) +
+  geom_point( aes(alpha = .05) )+
+  ggtitle("Vertical Strip Plot of BMI's per Year (.05 Alpha)")
+
+ggplot( aes( x = Ave_Male_BMI, y = Year), data = m_dat) +
+  geom_point( aes(alpha = .05) )+
+  ggtitle("Horizontal Strip Plot of BMI's per Year (.05 Alpha)")
+
+print("These two graphs start to show us the general change, \nbut not the effect of time for specific countries.")
+
+ggplot( aes( y = Floor_BMI, x = Year), data = m_dat) +
+  geom_point( aes(alpha = .05) )+
+  ggtitle("H Strip Plot of Rounded BMI's per Year (.05 Alpha)")
+
+print("Rounding removes the clutter but doesn't give a sense of \ntrends, rather than a general visual idea of the values.")
+
+ggplot( aes( y = Floor_BMI, x = Year), data = m_dat, size = .2) +
+  geom_point( aes(alpha = .01) )+
+  ggtitle("H Strip Plot of Rounded BMI's per Year (.01 Alpha & Jitter)")+
+  geom_jitter(width = 0.5, height = 0.05)
+
+print("Transparency and jittering  doesn't provide as much of a \nsense of the rarity of particular values as exepcted.")
+
+print("For this much data we might try the heatmap or tile used in genomic data-")
+ggplot(aes(y = Country, x = Year, fill = Ave_Male_BMI),
+  data = m_dat) +
+  geom_tile() +
+  scale_fill_gradientn(colours = colorRampPalette(c("blue", "red"))(100))+
+  ggtitle("Heatmap of All Countries, to Year, Colored by BMI")
+
+print("For this we'd need a better way to identify the countries in \na systemitized way, but we do see a general trend in increase except in \n
+a rare few countrys at the lowest and highest ends.")
+
+print("To make sense of some specific trends to a limited subset  with a random sample of \n5 countries.")
+set.seed(0001)
+set_Country <- sample(m_dat$Country, 5, replace = FALSE)
+m_dat2 <- m_dat[m_dat$Country %in% set_Country,]
+
+#levels(m_dat2$Country)
+m_dat2<- arrange(m_dat2, Country, Ave_Male_BMI)
+
+#View(m_dat2)
+# Even with the heat map, 199 Countries are nearly impossible to plot subsetting five random
+# Note output will not will change due to set.seed, this could be commented out to give a random sample of countries
+
+ggplot(aes(y = Ave_Male_BMI, x = Year, color = Country), data = m_dat2) +
+  geom_line() +
+  ggtitle("5 Countries, Ave Male BMI by Year")
+
+ggplot( aes( y = Floor_BMI, x = Year, color = Country), data = m_dat2, size = .2) +
+  geom_point( aes(alpha = .01) )+
+  ggtitle("H Strip Plot of Rounded BMI's per Year (.01 Alpha & Jitter)")+
+  geom_jitter(width = 0.5, height = 0.8)
+
+print("This plot is specificaly interesting due to the large jumps from \n year to year in some countries, specificaly Sudan and Gabon and Serbia.")
+
+ggplot(aes(y = Country, x = Year, fill = Ave_Male_BMI),
+  data = m_dat2) +
+  geom_tile() +
+  scale_fill_gradientn(colours = colorRampPalette(c("blue", "red"))(100))+
+  ggtitle("Heatmap of 5 Countries, by Year, \nColored by Ave Male BMI")
+
+print("The joump in Serbia appears more gentil in the heatmap and \nthe line graph versions.")
+
+print("Summary  Statistics Using All Countries Values-")
+summary(m_dat$Ave_Male_BMI)
+# This output will change anytime you run the random # sample of countries.
+
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 20.93   23.64   25.62   24.96   26.67   27.91 
+print("Summary  Statistics Using Only te 5 Subset Countries-")
+summary(m_dat2$Ave_Male_BMI)
+
+#drop the 194 unused levels or they appear in tables and charts
+m_dat2$Country <- droplevels(m_dat2$Country)
+
+print("A Table by Subset Country of Summary Statistics-")
+table(m_dat2$Country) 
+ by(m_dat2$Ave_Male_BMI, m_dat2$Country, summary)
+ 
+```
+ 
+Plotting the Data Individually - redoing some of the previous plots 
+with the subset countries.
+```{r plot, include=TRUE} 
+
+a <-qplot(x = Ave_Male_BMI, data= m_dat, binwidth = .5, geom = 'histogram',
+           main = 'Histogram of all BMI Values in OriginalDataset') +
+   scale_x_continuous( name = "Averave Male BMI -Kg/M^2", limits = c(18,35), 
+                       breaks = waiver(), minor_breaks = waiver(),  
+                       expand = waiver(), na.value = NA_real_,
+                       trans = "identity", labels = scales::comma) +
+   scale_y_continuous( name = "Count")
+a
+
+
+a2 <-qplot(x = Ave_Male_BMI, data= m_dat2, binwidth = .5, geom = 'histogram',
+           main = 'Histogram of Subset BMI Values in OriginalDataset') +
+   scale_x_continuous( name = "Averave Male BMI -Kg/M^2", limits = c(18,35), 
+                       breaks = waiver(), minor_breaks = waiver(),  
+                       expand = waiver(), na.value = NA_real_,
+                       trans = "identity", labels = scales::comma) +
+   scale_y_continuous( name = "Count")
+a2
+ #Plain Histogram plot of All BMI values  
+ 
+#Removed B version
+
+c <- boxplot(Ave_Male_BMI~Country,data=m_dat2, 
+        main="Ave Male BMI, by Selected Counties,1980-2008", 
+        xlab="Country", ylab="Ave BMI")
+
+# Boxplot of BMI by Selected Counties 
+# Simple Boxplot of the summary data using boxplot
+# Label for Longer Countries Gets Cut off "West Bank and Gaza"
+# If you save this command as a variable pringint the variable gives the 
+# statistics and not the plot
+
+d<- ggplot(m_dat2, aes(x= Country, y = Ave_Male_BMI, color= Year))+
+  geom_point()+
+  ggtitle("Vertical Strip Plot of the Average Mail BMI Data, by Year")
+d
+# Vertical "Strip" Plot of the summary data, year by color
+# Auto scaling allows for longer names, but overlaps
+# Why Doesn't xlab work here?
+
+e <-ggplot(m_dat2, aes(x = Ave_Male_BMI, y= Country, color =Year), 
+       main="Ave Male BMI, by Selected Counties,1980-2008", 
+       xlab="Country", ylab="Ave BMI")+
+              geom_point()+
+  ggtitle("Horizontal Strip Plot of the Average Mail BMI Data, by Year")
+e
+
+# Hoizontal "Strip" Plot of the summary data
+# Labels aren't working...
+# This one is better for long Country labels
+```
+
+

@@ -1,0 +1,267 @@
+---
+title: "EDA Project 3 -Diamonds -Udacity ud651 PS-5.Rmd"
+author: "Curtis ONeal"
+date: "May 3, 2016"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(ggplot2)
+library(reshape2)
+library(dplyr)
+
+```
+# Price Histograms with Facet and Color
+
+Create a histogram of diamond prices. Facet the histogram by diamond color and use cut to color the histogram bars.
+
+The plot should look something like this. http://i.imgur.com/b5xyrOu.jpg
+Note: In the link, a color palette of type 'qual' was used to color the histogram using scale_fill_brewer(type = 'qual')
+
+```{r diamonds by color, include=TRUE}
+colnames(diamonds)
+#str(diamonds)
+table(diamonds$color)
+
+p1 <- ggplot(diamonds, aes(price, fill = cut) ) +
+          geom_histogram() +
+          ggtitle( 'Price by Color and Clarity') +
+          facet_wrap(~color, ncol = 2) +
+          scale_fill_brewer(type = 'qual')+
+          scale_x_log10()
+p1
+
+```
+#Price vs. Table Colored by Cut
+
+Create a scatterplot of diamond price vs. table and color the points by the cut of the diamond.
+
+The plot should look something like this. http://i.imgur.com/rQF9jQr.jpg
+
+Note: In the link, a color palette of type 'qual' was used to color the scatterplot using scale_color_brewer(type = 'qual')
+
+```{r diamonds by price and table, include=TRUE, echo=FALSE}
+
+p2 <- ggplot(diamonds, aes(table, price) ) +
+          geom_point( aes(colour = cut) ) +
+          ggtitle( 'Price by Table and Cut') +
+          scale_fill_brewer(type = 'qual')+
+          coord_cartesian( xlim = c(45, 80), ylim = NULL)
+p2
+
+```
+# Typical Table Value
+
+What is the typical table range for the majority of diamonds of the ideal cut? 53-57
+
+What is the typical table range for the majority of diamonds of the premium cut? 58-62
+
+ ******
+#Price vs. Volume and Diamond Clarity
+
+Create a scatterplot of diamond price vs. volume (x * y * z) and color the points by the clarity of diamonds. Use scale on the y-axis to take the log10 of price. You should also omit the top 1% of diamond volumes from the plot.
+
+Note 1: Volume is a very rough approximation of a diamond's actual volume.
+
+The plot should look something like this. http://i.imgur.com/excUpea.jpg
+
+Note 2: In the link, a color palette of type 'div' was used to color the scatterplot using scale_color_brewer(type = 'div')
+```{r pretty rainbow include=TRUE}
+
+diamonds$volume <- with(diamonds, x * y * z)
+summary(diamonds$volume)  #Note extreme outliers
+
+vol99<- filter(diamonds, diamonds$volume <= quantile(diamonds$volume, c(.99)))
+#Remove top outliers
+
+summary(vol99$volume) 
+#Verify affect extreme outliers
+
+p3a <- ggplot( data = vol99, aes( volume, price) ) +
+          geom_point(aes( colour = clarity)) +
+          scale_y_log10()+
+          ggtitle( 'Price by Volume and Clarity') +
+          scale_fill_brewer(type = 'div')
+p3a #default fill scheme div
+
+p3b + scale_color_brewer(type = 'div')
+#Adding this layer to the plot object replaces the existing scale #and gives a warning. Adds default color scheme div
+
+```
+#Proportion of Friendships Initiated
+
+Many interesting variables are derived from two or more others. For example, we might wonder how much of a person's network on a service like Facebook the user actively initiated. Two users with the same degree (or number of friends) might be very different if one initiated most of those connections on the service, while the other initiated very few. So it could be useful to consider this proportion of existing friendships that the user initiated. This might be a good predictor of how active a user is compared with their peers, or other traits, such as personality (i.e., is this person an extrovert?).
+
+Your task is to create a new variable called 'prop_initiated' in the Pseudo-Facebook data set. The variable should contain the proportion of friendships that the user initiated. 
+
+```{r friends_initiated1, include=TRUE}
+
+pf <- read.delim('pseudo_facebook.tsv')
+
+pf$prop_initiated <- with(pf, friendships_initiated / friend_count)
+
+summary(pf$prop_initiated )
+
+p4 <- ggplot(aes(x = tenure, y = prop_initiated ), data = pf) +
+  geom_line(stat = 'summary', fun.y=median)+
+          ggtitle( 'Prop Friends Initiated by Tenure in Days')
+p4
+```
+
+#Prop_initiated vs. Tenure
+
+Create a line graph of the median proportion of friendships initiated ('prop_initiated') vs. tenure and color the line segment by year_joined.bucket.
+
+Recall, we created year_joined.bucket in Lesson 5  by first creating year_joined from the variable tenure. Then, we used the cut function on year_joined to create four bins or cohorts of users.
+
+(2004, 2009]
+(2009, 2011]
+(2011, 2012]
+(2012, 2014]
+
+The plot should look something like this. http://i.imgur.com/vNjPtDh.jpg
+OR this http://i.imgur.com/IBN1ufQ.jpg
+
+```{r friends_initiated2, include=TRUE}
+
+pf$year_joined <- floor(2014 - pf$tenure/365 ) #approximate the year joined
+
+pf$year_joined.bucket <- cut(pf$year_joined, breaks = 
+    c(2004, 2009, 2011,  2012, 2014), include.lowest = 
+    FALSE, right = TRUE, ordered_result = TRUE) 
+#create year bins by odd numbered grouping as instructed.
+
+table( pf$year_joined.bucket) #verify
+
+pf$prop_initiated <- with(pf, friendships_initiated / friend_count)
+
+summary(pf$prop_initiated ) #Verify data makes sense. Note the NA's
+
+# The below is debugging code due to the NA's in the plot 
+# To state the problem to avoid it in the future and to perhaps help others -
+# dropping NA's from a section of the dataframe can result in vectors of
+# unequal lengths, separately the stat =  'summary', fun.y = median args
+# go in the geom, do not put the mean into the x or y paramenter of ggplot
+
+non_NA <- pf[complete.cases(pf), ] #drop any row with an NA
+dim(non_NA) #96864 obs
+dim(pf) #99003 obs
+dim(pf) - dim(non_NA) #2139 were dropped
+anyNA(non_NA)
+
+mean(non_NA$year_joined)
+mean(non_NA$friendships_initiated)
+mean(non_NA$tenure)
+mean(non_NA$prop_initiated)
+mean(non_NA$friend_count)
+
+summary(non_NA$year_joined)
+summary(non_NA$friendships_initiated)
+summary(non_NA$tenure)
+summary(non_NA$prop_initiated)
+summary(non_NA$friend_count)
+summary(non_NA$prop_initiated)
+
+# End debugging checking
+# All of this verified that numerical answers were obtained and NA's removed
+# Thinking that trouble in the plot was due to the underlying number not syntax
+
+p5 <- ggplot(aes(x = tenure, y = prop_initiated), data = non_NA) +
+  geom_line(aes(colour = year_joined.bucket),
+            stat =  'summary',
+            fun.y = median) +
+  ggtitle('Median Proportion of Friendships \nInitiated by Days on FB and Tenure Bin') +
+  scale_fill_brewer(type = 'div')
+p5
+
+```
+
+# Largest Group Mean Prop_initiated
+
+For the group with the largest proportion of friendships initiated, what is the group's average (mean) proportion of friendships initiated? 
+
+0.6654092
+
+Why do you think this groups mean proportion initiated is higher?
+
+With the shortest tenure they also have the fewest friends (127.7184) and are actively connecting, where as those with longer tenure on average may have reduce actively initiating friendships, as implied by the downward slope in the grate. We could analyze the data to study this hypothesis with a time dimension, on specific users.
+
+```{r friends_initiated3, include=TRUE}
+
+table(non_NA$year_joined.bucket) 
+# A count of the numbers in these bins
+
+summarise(group_by(non_NA, year_joined.bucket), mean(friendships_initiated))
+# Averarage number of friends initiated by bin
+
+summarise(group_by(non_NA, year_joined.bucket), mean(friend_count))
+#averarage number of friends
+
+summarise(group_by(non_NA, year_joined.bucket), mean(prop_initiated))
+#average (mean) proportion of friendships initiated
+
+mean(non_NA$prop_initiated)
+#Grand mean
+```
+
+Smooth the last plot you created of of prop_initiated vs tenure colored by year_joined.bucket. You can bin together ranges of tenure or add a smoother to the plot.
+
+```{r PITA include=TRUE}
+
+p6a <- ggplot(aes(x = tenure, y = prop_initiated), data = non_NA) +
+  geom_smooth(aes(colour = year_joined.bucket),
+            stat =  'summary',
+            fun.y = median) +
+  ggtitle('Median Proportion of Friendships \nInitiated by Days on FB and Tenure Bin') +
+  scale_fill_brewer(type = 'div')
+p6a
+
+p6b <- ggplot(aes(x = tenure, y = prop_initiated), data = non_NA) +
+  geom_line(aes(colour = year_joined.bucket),
+            stat =  'summary',
+            fun.y = median) +
+  ggtitle('Median Proportion of Friendships \nInitiated by Days on FB and Tenure Bin') +
+  scale_fill_brewer(type = 'div')+
+  geom_smooth(method = lm)
+p6b
+
+```
+
+#Price/Carat Binned, Faceted, & Colored
+
+Create a scatter plot of the price/carat ratio of diamonds. The variable x should be assigned to cut. The points should be colored by diamond color, and the plot should be faceted by clarity.
+
+The plot should look something like this. http://i.imgur.com/YzbWkHT.jpg.
+
+Note: In the link, a color palette of type 'div' was used to color the histogram using scale_color_brewer(type = 'div')
+
+```{r Carat Bins include=TRUE}
+
+diamonds$p2c_ratio <- with(diamonds, price/carat)
+
+p7 <- ggplot( data = diamonds, aes( x= cut, y=p2c_ratio) ) +
+          geom_jitter(aes( colour = color), size=1, position=position_jitter(width=0.5, height=0)) +
+          ggtitle( 'Diamond Price to Carat Ratio by Cut and Color') +
+          scale_color_brewer(type = 'div')+
+          facet_wrap(~clarity) 
+p7 #default color scheme div
+
+```
+
+The Gapminder website contains over 500 data sets with information about the world's population. Your task is to continue the investigation you did at the
+end of Problem Set 4 or you can start fresh and choose a different data set from Gapminder.
+
+In your investigation, examine 3 or more variables and create 2-5 plots that make use of the techniques from Lesson 5.
+
+Discussions that includes:
+
+1. the variable(s) you investigated, your observations, and any summary statistics
+2. snippets of code that created the plots
+3. links to the images of your plots
+
+
+```{r Carat Bins include=TRUE}
+
+```
